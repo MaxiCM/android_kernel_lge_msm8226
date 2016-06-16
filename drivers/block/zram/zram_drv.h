@@ -16,9 +16,10 @@
 #define _ZRAM_DRV_H_
 
 #include <linux/spinlock.h>
-#include <linux/mutex.h>
 
-#include "../zsmalloc/zsmalloc.h"
+#include "../../staging/zsmalloc/zsmalloc.h"
+
+#include "zcomp.h"
 
 /*
  * Some arbitrary value. This is just to catch
@@ -43,7 +44,6 @@ static const size_t max_zpage_size = PAGE_SIZE / 10 * 9;
 /*-- End of configurable params */
 
 #define SECTOR_SHIFT		9
-#define SECTOR_SIZE		(1 << SECTOR_SHIFT)
 #define SECTORS_PER_PAGE_SHIFT	(PAGE_SHIFT - SECTOR_SHIFT)
 #define SECTORS_PER_PAGE	(1 << SECTORS_PER_PAGE_SHIFT)
 #define ZRAM_LOGICAL_BLOCK_SHIFT 12
@@ -62,55 +62,36 @@ enum zram_pageflags {
 /*-- Data structures */
 
 /* Allocated for each disk page */
-struct table {
+struct zram_table_entry {
 	unsigned long handle;
 	u16 size;	/* object size (excluding header) */
-	u8 count;	/* object ref count (not yet used) */
 	u8 flags;
 } __aligned(4);
 
-/*
- * All 64bit fields should only be manipulated by 64bit atomic accessors.
- * All modifications to 32bit counter should be protected by zram->lock.
- */
 struct zram_stats {
-	atomic64_t compr_size;	/* compressed size of pages stored */
+	atomic64_t compr_data_size;	/* compressed size of pages stored */
 	atomic64_t num_reads;	/* failed + successful */
 	atomic64_t num_writes;	/* --do-- */
-	atomic64_t failed_reads;	/* should NEVER! happen */
+	atomic64_t failed_reads;	/* can happen when memory is too low */
 	atomic64_t failed_writes;	/* can happen when memory is too low */
 	atomic64_t invalid_io;	/* non-page-aligned I/O requests */
 	atomic64_t notify_free;	/* no. of swap slot free notifications */
-	u32 pages_zero;		/* no. of zero filled pages */
-	u32 pages_stored;	/* no. of pages currently stored */
-	u32 good_compress;	/* % of pages with compression ratio<=50% */
-	u32 bad_compress;	/* % of pages with compression ratio>=75% */
+	atomic64_t zero_pages;		/* no. of zero filled pages */
+	atomic64_t pages_stored;	/* no. of pages currently stored */
 };
 
 struct zram_meta {
-	void *compress_workmem;
-	void *compress_buffer;
-	struct table *table;
+	rwlock_t tb_lock;	/* protect table */
+	struct zram_table_entry *table;
 	struct zs_pool *mem_pool;
-};
-
-struct zram_slot_free {
-	unsigned long index;
-	struct zram_slot_free *next;
 };
 
 struct zram {
 	struct zram_meta *meta;
-	struct rw_semaphore lock; /* protect compression buffers, table,
-				   * 32bit stat counters against concurrent
-				   * notifications, reads and writes */
-
-	struct work_struct free_work;  /* handle pending free request */
-	struct zram_slot_free *slot_free_rq; /* list head of free request */
-
 	struct request_queue *queue;
 	struct gendisk *disk;
-	int init_done;
+	struct zcomp *comp;
+
 	/* Prevent concurrent execution of device init, reset and R/W request */
 	struct rw_semaphore init_lock;
 	/*
@@ -118,8 +99,8 @@ struct zram {
 	 * we can store in a disk.
 	 */
 	u64 disksize;	/* bytes */
-	spinlock_t slot_free_lock;
-
+	int max_comp_streams;
 	struct zram_stats stats;
+	char compressor[10];
 };
 #endif
