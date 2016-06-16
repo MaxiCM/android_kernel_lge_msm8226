@@ -2252,7 +2252,7 @@ bad_sense:
 		/* Invalid field in CDB */
 		sd_printk(KERN_NOTICE, sdkp, "Cache data unavailable\n");
 	else
-		sd_printk(KERN_ERR, sdkp, "Asking for cache data failed\n");
+		sd_printk(KERN_ERR, sdkp, "Asking for cache data failFUAed\n");
 
 defaults:
 	sd_printk(KERN_ERR, sdkp, "Assuming drive cache: write through\n");
