@@ -422,13 +422,11 @@ obj-$(CONFIG_MEMORY_HOLE_CARVEOUT) +=  msm_mem_hole.o
 
 obj-$(CONFIG_MSM_SMCMOD) += smcmod.o
 obj-$(CONFIG_MSM_CPU_PWRCTL) +=  msm_cpu_pwrctl.o
-obj-$(CONFIG_INTELLI_PLUG) += intelli_plug.o
 obj-$(CONFIG_LGE_SMD_TEST) += smd_lge_loopback.o
 obj-$(CONFIG_ARCH_MSM8974) += msm_mpmctr.o
 obj-$(CONFIG_MSM_CPR_REGULATOR) += cpr-regulator.o
 obj-$(CONFIG_CPU_FREQ_MSM) += cpufreq.o
 obj-$(CONFIG_MSM_DEVFREQ_CPUBW) += devfreq_cpubw.o
-obj-$(CONFIG_INTELLI_PLUG) += intelli_plug.o
 obj-$(CONFIG_FORCE_FAST_CHARGE) += fastchg.o
 obj-$(CONFIG_ALUCARD_HOTPLUG) += alucard_hotplug.o
 
